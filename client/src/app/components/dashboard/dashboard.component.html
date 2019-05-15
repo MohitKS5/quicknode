@@ -1,0 +1,21 @@
+<div class="cover">
+  <span class="welcome">Welcome {{user.name}} !</span>
+  <mat-card *ngIf="data|async">
+    <div class="userlist bold">
+      <div>Name</div>
+      <div>Username</div>
+      <div>Role</div>
+      <div>Delete User</div>
+      <div>Make Admin</div>
+    </div>
+    <div *ngFor="let usr of data|async" class="userlist">
+      <div>{{usr.name}}</div>
+      <div>{{usr.username}}</div>
+      <div>{{usr.isAdmin?'Admin':'User'}}</div>
+      <div><button mat-raised-button (click)="deleteUser(usr.username)">Delete user</button></div>
+      <div><button mat-raised-button (click)="makeAdmin(usr.username)">Make Admin</button></div>
+    </div>
+  </mat-card>
+
+  <button mat-raised-button routerLink="/login">Log Out</button>
+</div>

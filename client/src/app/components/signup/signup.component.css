@@ -1,0 +1,42 @@
+.containit{
+  width: 100vw;
+  height: 100vh;
+  background-color: cyan;
+  display: block;
+}
+
+.rowflex{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.colflex{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.form{
+  padding: 10vh 5vw;
+}
+
+
+.signin span:hover{
+  cursor: pointer;
+  color: green;
+}
+.signin{
+  padding-top: 20px;
+}
+
+
+.error{
+  color: red;
+  position: absolute;
+  bottom: 0;
+  padding: 20px;
+}
+

@@ -1,0 +1,17 @@
+<div class="containit rowflex">
+  <mat-card>
+    <div class="colflex form">
+      <mat-form-field>
+        <input matInput placeholder="username" #username>
+      </mat-form-field>
+
+      <mat-form-field>
+        <input matInput placeholder="password" type="password" #password>
+      </mat-form-field>
+
+      <button mat-raised-button type="submit" (click)="signin(username.value,password.value)">Login</button>
+      <div class="signup">New to portal? <span routerLink="/signup">Sign up</span></div>
+      <div class="error" *ngIf="res?res.status!=200:false">{{res.message}}</div>
+    </div>
+  </mat-card>
+</div>

@@ -1,0 +1,37 @@
+.cover{
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: large;
+  background-color: lightgreen;
+}
+
+.userlist div{
+  width: 15vw;
+}
+
+.userlist{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.bold{
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+mat-card{
+  margin: 40px;
+}
+
+.welcome{
+  font-size: 4vh;
+  font-weight: 600;
+  margin: 5vh;
+}
