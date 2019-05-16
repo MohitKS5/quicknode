@@ -8,9 +8,10 @@
     "start": "nodemon ./server.js localhost 4200"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^7.0.1",
+    "axios": "^0.18.0",
     "body-parser": "^1.19.0",
-    "express": "^4.16.4",
-    "sqlite3": "^4.0.8"
+    "express": "^4.16.4"
   },
   "devDependencies": {
     "nodemon": "^1.19.0"
