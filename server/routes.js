@@ -1,18 +1,12 @@
-const sqlite3 = require('sqlite3').verbose();
-
+const http = require('axios');
 //error types
 const internalServerError = {status: 500, message: 'Some error occurred!'};
 const unauthorized = {status: 401, message: 'Invalid Username or Password!'};
 const conflict = {status: 409, message: 'Username already taken!'};
 const primaryKeyConflict = 'SQLITE_CONSTRAINT';
 
-//database
-let db = new sqlite3.Database('./db/portal.db', sqlite3.OPEN_READWRITE, (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-    console.log('Connected to lite portal database.');
-});
+//database params
+const host = 'http://localhost:9200/';
 
 //routes
 let router = require('express').Router();
@@ -28,69 +22,70 @@ function welcome(req, res) {
 }
 
 function getUser(req, res) {
-    let sql = `select name,username,isAdmin from users where username = ? and password = ?`;
-    db.get(sql, [req.body.username, req.body.password], (err, row) => {
-        console.log(row, err);
-        if (err) res.send(internalServerError);
-        else if (row) res.send({status: 200, data: row});
-        else res.send(unauthorized)
-    });
-};
+    let usr = req.body;
+    http.get(host + 'users/_doc/' + usr.username)
+        .then(resp => {
+            let user = resp.data._source;
+            if (user.password === usr.password) res.send({status: 200, data: user});
+            else res.send(unauthorized);
+        })
+        .catch(err => {
+            console.log(err);
+            res.send(unauthorized)
+        })
+}
 
 function insertUser(isadmin, usr, res) {
-    let insertUser = `insert into users values(?,?,?,?)`;
-    db.run(insertUser, [usr.name, usr.username, usr.password, isadmin], err => {
-        if (err) if (err.code === primaryKeyConflict) res.send(conflict); else res.send(internalServerError);
+    http.put(host + 'users/_doc/' + usr.username, {
+        isAdmin: isadmin,
+        ...usr
+    }).then(resp => {
+        if (resp.error) {
+            res.send(internalServerError);
+            console.log(res);
+        }
         else res.send({status: 200});
-    });
-}
-
-function addUser(req, res) {
-    const checktable = `SELECT count(*) from users;`;
-    let createTable = `create table if not exists users(
-   username char(25),
-   name char(50),
-   password char(50),
-   isAdmin bit,
-   primary key(username)
-   )`;
-    let usr = req.body;
-    db.run(createTable, [], err => {
-        if (err) res.send(internalServerError);
-        db.get(checktable, [], (err, row) => {
-            console.log(row['count(*)']);
-            if (err) res.send(internalServerError);
-            else if (row['count(*)'] > 0) insertUser(0, usr, res);
-            else insertUser(1, usr, res);
-        })
-    });
-}
-
-function getUsers(req, res) {
-    const getUsers = `select * from users`;
-    db.all(getUsers, [], (err, rows) => {
-        if (err) res.send(internalServerError);
-        else res.send({status: 200, data: rows});
+    }).catch(err => {
+        console.log(err);
+        res.send(internalServerError);
     })
 }
 
-function deleteUser(req, res) {
-    const deleteUser = `delete from users where username = ?`;
-    db.run(deleteUser, [req.params.username], err => {
-        if (err) {
-            res.send(internalServerError);
+function addUser(req, res) {
+    let usr = req.body;
+    http.get(host + 'users/_search')
+        .then(resp => insertUser(0, usr, res))
+        .catch(err => err.response.data.status === 404 ? insertUser(1, usr, res) : res.send(internalServerError));
+}
+
+function getUsers(req, res) {
+    http.get(host + 'users/_search')
+        .then(resp => {
+            console.log(resp.data);
+            res.send({status: 200,data: resp.data.hits.hits.map(user => user._source)})
+        })
+        .catch(err => {
             console.log(err);
-        }
-        else res.send({status: 200});
-    });
+            res.send(internalServerError);
+        })
+}
+
+function deleteUser(req, res) {
+    let id = req.params.username;
+    http.delete(host + 'users/_doc/' + id).then(resp => res.send({status: 200})).catch(err => {
+        console.log(err);
+        res.send(internalServerError);
+    })
 }
 
 function makeAdmin(req, res) {
-    const makeAdmin = `update users set isAdmin=1 where username = ?`;
-    db.run(makeAdmin, [req.params.username], err => {
-        if (err) res.send(internalServerError);
-        else res.send({status: 200});
-    });
+    let id = req.params.username;
+    http.post(host + 'users/_update/' + id, {
+        "doc": {
+            'isAdmin': 1
+        }
+    }).then(() => res.send({status: 200}))
+        .catch(err => res.send(internalServerError));
 }
 
 module.exports = router;
