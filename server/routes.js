@@ -1,4 +1,5 @@
-const http = require('axios');
+const client = require('./config');
+
 //error types
 const internalServerError = {status: 500, message: 'Some error occurred!'};
 const unauthorized = {status: 401, message: 'Invalid Username or Password!'};
@@ -23,46 +24,66 @@ function welcome(req, res) {
 
 function getUser(req, res) {
     let usr = req.body;
-    http.get(host + 'users/_doc/' + usr.username)
-        .then(resp => {
-            let user = resp.data._source;
-            if (user.password === usr.password) res.send({status: 200, data: user});
-            else res.send(unauthorized);
-        })
-        .catch(err => {
+    client.get({id: usr.username, index: 'users', type: '_doc'}, function (err, resp) {
+        if (err) {
             console.log(err);
             res.send(unauthorized)
-        })
+        } else {
+            let user = resp.body._source;
+            if (user.password === usr.password) res.send({status: 200, data: user});
+            else res.send(unauthorized);
+        }
+    });
 }
 
 function insertUser(isadmin, usr, res) {
-    http.put(host + 'users/_doc/' + usr.username, {
-        isAdmin: isadmin,
-        ...usr
-    }).then(resp => {
-        if (resp.error) {
+    async function run() {
+       return await client.index({
+            index: 'users',
+            id: usr.username,
+            type: '_doc',
+            body: {
+                isAdmin: isadmin,
+                ...usr
+            }
+        });
+    }
+
+    run().then(resp => res.send({status: 200}))
+        .catch(err => {
+            console.log(err);
             res.send(internalServerError);
-            console.log(res);
-        }
-        else res.send({status: 200});
-    }).catch(err => {
-        console.log(err);
-        res.send(internalServerError);
-    })
+        })
 }
 
 function addUser(req, res) {
     let usr = req.body;
-    http.get(host + 'users/_search')
-        .then(resp => insertUser(0, usr, res))
-        .catch(err => err.response.data.status === 404 ? insertUser(1, usr, res) : res.send(internalServerError));
+
+    async function run() {
+       return await client.search({
+            index: 'users',
+            type: '_doc',
+        })
+    }
+
+    run().then(resp => insertUser(0, usr, res))
+        .catch(err => {
+            console.log(err);
+            err.response.data.status === 404 ? insertUser(1, usr, res) : res.send(internalServerError)
+        });
 }
 
 function getUsers(req, res) {
-    http.get(host + 'users/_search')
-        .then(resp => {
-            console.log(resp.data);
-            res.send({status: 200,data: resp.data.hits.hits.map(user => user._source)})
+    async function run() {
+        return await client.search({
+            index: 'users',
+            type: '_doc'
+        })
+    }
+
+    run().then(resp => {
+            // console.log(resp);
+            res.send({status: 200, data: resp.body.hits.hits.map(user => user._source)})
         })
         .catch(err => {
             console.log(err);
@@ -72,7 +93,14 @@ function getUsers(req, res) {
 
 function deleteUser(req, res) {
     let id = req.params.username;
-    http.delete(host + 'users/_doc/' + id).then(resp => res.send({status: 200})).catch(err => {
+    async function run(){
+        return await client.delete({
+            index: 'users',
+            id: id,
+            type: '_doc'
+        })
+    }
+   run().then(resp => res.send({status: 200})).catch(err => {
         console.log(err);
         res.send(internalServerError);
     })
@@ -80,11 +108,18 @@ function deleteUser(req, res) {
 
 function makeAdmin(req, res) {
     let id = req.params.username;
-    http.post(host + 'users/_update/' + id, {
-        "doc": {
-            'isAdmin': 1
-        }
-    }).then(() => res.send({status: 200}))
+    async function run(){
+        return await client.update({
+            index: 'users',
+            id: id,
+            body: {
+                doc: {
+                    isAdmin: 1
+                }
+            }
+        })
+    }
+    run().then(() => res.send({status: 200}))
         .catch(err => res.send(internalServerError));
 }
 
