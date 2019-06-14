@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+  ##########################
+  ### SETUP SERVER CONTAINER
+  ##########################
+  server:
+    container_name: resserver
+    # Tell docker what file to build the server from
+    build:
+      context: .
+    # The ports to expose
+    expose:
+      - 3001
+    # Environment variables
+    environment:
+      - PORT=3001
+      - DEBUG=worker:*
+      - HOST=http://localhost
+      - PORT=3000
+      - MORGAN=combined
+      - NODE_ENV=development
+      - TZ=Asia/Kolkata
+    # Port mapping
+    ports:
+      - 3001:3001
+    # Volumes to mount
+    volumes:
+      - ./src:/app/server/src
+    # Run command
+    # Nodemon for hot reloading (-L flag required for polling in Docker)
+    command: nodemon ./bin/www
+    # Connect to other containers
